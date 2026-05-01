@@ -128,8 +128,10 @@ Deploy using:
 
 * Vercel
 
-👉 Update API base URL in:
-client/src/services/api.js
+## 🔗 Live Demo
+
+Frontend: https://task-manager-repo-orpin.vercel.app  
+Backend: https://task-manager-repo-production.up.railway.app
 
 ---
 
