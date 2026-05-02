@@ -113,3 +113,12 @@ code {
 html.dark {
   background: #0f172a;
 }
+.input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid #555;
+  color: white;
+}

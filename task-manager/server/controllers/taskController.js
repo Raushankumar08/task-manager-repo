@@ -1,32 +1,58 @@
 const Task = require("../models/Task");
 
-// ✅ CREATE TASK
+
+// ================= CREATE =================
 exports.createTask = async (req, res) => {
   try {
+    const { title, assignedTo, priority, dueDate } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ msg: "Title required" });
+    }
+
+    // 🔒 Only admin can assign
+    if (assignedTo && req.user.role !== "admin") {
+      return res.status(403).json({ msg: "Only admin can assign" });
+    }
+
     const task = await Task.create({
-      ...req.body,
-      createdBy: req.user.id
+      title,
+      assignedTo: assignedTo || null,
+      priority,
+      dueDate,
+      createdBy: req.user.id,
     });
 
-    res.json(task);
+    const populated = await Task.findById(task._id)
+      .populate("assignedTo", "name email");
+
+    res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
 };
 
-// ✅ GET ALL TASKS (by project OR all user tasks)
+
+// ================= GET =================
 exports.getTasks = async (req, res) => {
   try {
-    const filter = {};
+    const { mode } = req.query;
 
-    // if project id is passed → filter by project
-    if (req.query.project) {
-      filter.project = req.query.project;
+    let filter = {};
+
+    // 👤 Member → only their tasks
+    if (mode === "my") {
+      filter.assignedTo = req.user.id;
+    }
+
+    // 👑 Admin → all tasks
+    if (mode === "all" && req.user.role === "admin") {
+      filter = {};
     }
 
     const tasks = await Task.find(filter)
-      .populate("project", "name")
-      .populate("assignedTo", "name email");
+      .populate("assignedTo", "name email")
+      .sort({ createdAt: -1 });
 
     res.json(tasks);
   } catch (err) {
@@ -34,18 +60,27 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-// ✅ UPDATE TASK
+
+// ================= UPDATE =================
 exports.updateTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const { status } = req.body;
 
-    if (!task) {
-      return res.status(404).json({ msg: "Task not found" });
+    const task = await Task.findById(req.params.id);
+
+    if (!task) return res.status(404).json({ msg: "Not found" });
+
+    // 🔒 Only assigned user OR admin
+    if (
+      req.user.role !== "admin" &&
+      task.assignedTo?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ msg: "Not allowed" });
     }
+
+    task.status = status || task.status;
+
+    await task.save();
 
     res.json(task);
   } catch (err) {
@@ -53,16 +88,25 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// ✅ DELETE TASK
+
+// ================= DELETE =================
 exports.deleteTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findById(req.params.id);
 
-    if (!task) {
-      return res.status(404).json({ msg: "Task not found" });
+    if (!task) return res.status(404).json({ msg: "Not found" });
+
+    // 🔒 Admin OR creator
+    if (
+      req.user.role !== "admin" &&
+      task.createdBy.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ msg: "Not allowed" });
     }
 
-    res.json({ msg: "Task deleted successfully" });
+    await task.deleteOne();
+
+    res.json({ msg: "Deleted" });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }

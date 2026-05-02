@@ -5,11 +5,14 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Sidebar from "./components/Sidebar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Tasks from "./pages/Tasks";
 
 const Layout = ({ children }) => (
   <div className="flex">
     <Sidebar />
-    <div className="flex-1 bg-gray-900 min-h-screen">{children}</div>
+    <div className="flex-1 bg-gray-900 min-h-screen ml-64 p-6">
+      {children}
+    </div>
   </div>
 );
 
@@ -26,6 +29,17 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Tasks />
               </Layout>
             </ProtectedRoute>
           }

@@ -7,9 +7,12 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const login = async () => {
     try {
+      setLoading(true);
+
       const res = await API.post("/auth/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
@@ -17,44 +20,56 @@ export default function Login() {
 
       nav("/dashboard");
     } catch (err) {
-      alert("Invalid login");
+      alert("Invalid credentials");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="bg-white p-8 rounded-xl w-80 shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-gray-900 to-black">
 
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Welcome Back 👋
-        </h1>
+      <div className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-8 w-96 text-white">
 
+        <h2 className="text-3xl font-bold text-center mb-6">
+          👋 Welcome Back
+        </h2>
+
+        {/* EMAIL */}
         <input
+          type="email"
           placeholder="Email"
-          className="w-full mb-3 px-3 py-2 border rounded"
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full mb-4 p-3 rounded-lg bg-white/10 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
 
+        {/* PASSWORD */}
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-4 px-3 py-2 border rounded"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="w-full mb-4 p-3 rounded-lg bg-white/10 border border-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
 
+        {/* BUTTON */}
         <button
           onClick={login}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 transition py-3 rounded-lg font-semibold"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
-        <p className="text-sm mt-4 text-center">
-          New user?{" "}
-          <Link to="/signup" className="text-blue-500">
-            Signup
+        {/* LINK */}
+        <p className="text-sm text-center mt-4">
+          New here?{" "}
+          <Link to="/signup" className="text-indigo-400 hover:underline">
+            Create account
           </Link>
         </p>
+
       </div>
     </div>
   );

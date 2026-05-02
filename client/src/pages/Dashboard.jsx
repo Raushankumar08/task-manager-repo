@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
@@ -8,176 +15,109 @@ export default function Dashboard() {
   const [title, setTitle] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
 
-  const [search, setSearch] = useState("");
-
-  // =========================
-  // LOAD DATA
-  // =========================
   const load = async () => {
-    try {
-      const t = await API.get("/tasks");
-      const u = await API.get("/auth/users");
+    const t = await API.get("/tasks");
+    const u = await API.get("/auth/users"); // required
 
-      setTasks(t.data);
-      setUsers(u.data);
-    } catch (err) {
-      console.log(err);
-    }
+    setTasks(t.data);
+    setUsers(u.data);
   };
 
   useEffect(() => {
     load();
   }, []);
 
-  // =========================
-  // CREATE TASK
-  // =========================
-  const createTask = async () => {
+  const addTask = async () => {
     if (!title) return alert("Enter task");
 
-    try {
-      await API.post("/tasks", {
-        title,
-        assignedTo,
-      });
+    await API.post("/tasks", {
+      title,
+      assignedTo,
+    });
 
-      setTitle("");
-      setAssignedTo("");
-      load();
-    } catch (err) {
-      alert("Create failed");
-    }
-  };
-
-  // =========================
-  // UPDATE STATUS
-  // =========================
-  const updateStatus = async (id, status) => {
-    await API.put(`/tasks/${id}`, { status });
+    setTitle("");
+    setAssignedTo("");
     load();
   };
 
-  // =========================
-  // FILTERED TASKS
-  // =========================
-  const filtered = tasks.filter((t) =>
-    t.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // =========================
-  // STATS
-  // =========================
   const total = tasks.length;
-  const done = tasks.filter((t) => t.status === "done").length;
-  const pending = tasks.filter((t) => t.status !== "done").length;
+  const done = tasks.filter(t => t.status === "done").length;
+  const progress = tasks.filter(t => t.status === "progress").length;
+
+  const data = [
+    { name: "Done", value: done },
+    { name: "Progress", value: progress },
+    { name: "Todo", value: total - done - progress },
+  ];
+
+  const COLORS = ["#22c55e", "#3b82f6", "#f59e0b"];
 
   return (
-    <div className="p-6 text-white w-full">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+    <div>
+      <h1 className="text-3xl font-bold text-white mb-6">🚀 Dashboard</h1>
 
-      {/* ================= STATS ================= */}
-      <div className="flex gap-4 mb-6">
-        <div className="bg-gray-800 px-4 py-2 rounded">Total: {total}</div>
-        <div className="bg-green-600 px-4 py-2 rounded">Done: {done}</div>
-        <div className="bg-yellow-500 px-4 py-2 rounded text-black">
-          Pending: {pending}
+      {/* STATS */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-blue-600 p-5 rounded text-white text-center">
+          <p>Total Tasks</p>
+          <h2 className="text-2xl font-bold">{total}</h2>
+        </div>
+
+        <div className="bg-green-600 p-5 rounded text-white text-center">
+          <p>Completed</p>
+          <h2 className="text-2xl font-bold">{done}</h2>
+        </div>
+
+        <div className="bg-yellow-500 p-5 rounded text-white text-center">
+          <p>In Progress</p>
+          <h2 className="text-2xl font-bold">{progress}</h2>
         </div>
       </div>
 
-      {/* ================= CREATE ================= */}
-      <div className="flex gap-3 mb-4">
+      {/* CHART */}
+      <div className="bg-gray-800 p-6 rounded mb-6">
+        <h2 className="text-white mb-4">📊 Task Analytics</h2>
+
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart>
+            <Pie data={data} dataKey="value">
+              {data.map((_, i) => (
+                <Cell key={i} fill={COLORS[i]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ADD TASK */}
+      <div className="flex gap-3">
         <input
+          placeholder="New task"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Task title"
-          className="bg-gray-800 text-white placeholder-gray-400 border border-gray-600 px-4 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="p-2 rounded bg-gray-700 text-white w-full"
         />
 
         <select
           value={assignedTo}
           onChange={(e) => setAssignedTo(e.target.value)}
-          className="bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded focus:outline-none"
+          className="p-2 rounded bg-gray-700 text-white"
         >
-          <option className="bg-gray-900 text-white" value="">
-            Assign user
-          </option>
-
+          <option value="">Assign user</option>
           {users.map((u) => (
-            <option
-              key={u._id}
-              value={u._id}
-              className="bg-gray-900 text-white"
-            >
+            <option key={u._id} value={u._id}>
               {u.name}
             </option>
           ))}
         </select>
 
         <button
-          onClick={createTask}
-          className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+          onClick={addTask}
+          className="bg-blue-600 px-4 rounded text-white"
         >
           Add
         </button>
-      </div>
-
-      {/* ================= SEARCH ================= */}
-      <input
-        placeholder="Search tasks..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full mb-6 bg-gray-800 text-white border border-gray-600 px-4 py-2 rounded"
-      />
-
-      {/* ================= TASK LIST ================= */}
-      <div className="space-y-4">
-        {filtered.map((t) => {
-          const isOverdue =
-            t.dueDate &&
-            new Date(t.dueDate) < new Date() &&
-            t.status !== "done";
-
-          return (
-            <div
-              key={t._id}
-              className={`p-4 rounded ${
-                isOverdue ? "bg-red-600" : "bg-gray-800"
-              }`}
-            >
-              <h2 className="text-lg font-semibold">{t.title}</h2>
-
-              <p className="text-sm">
-                Assigned: {t.assignedTo?.name || "None"}
-              </p>
-
-              <p className="text-sm">Status: {t.status}</p>
-
-              {/* ACTION BUTTONS */}
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => updateStatus(t._id, "todo")}
-                  className="bg-gray-600 px-3 py-1 rounded"
-                >
-                  Todo
-                </button>
-
-                <button
-                  onClick={() => updateStatus(t._id, "progress")}
-                  className="bg-yellow-500 px-3 py-1 rounded text-black"
-                >
-                  Progress
-                </button>
-
-                <button
-                  onClick={() => updateStatus(t._id, "done")}
-                  className="bg-green-600 px-3 py-1 rounded"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
